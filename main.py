@@ -1,8 +1,10 @@
 import os
 from google import genai
 import json
+from datetime import datetime, date
 
 client = genai.Client(api_key= os.getenv("API_KEY"))
+l1 = [1, 2, 3, 4]
 def call_model(content):
     response = client.models.generate_content(
         model="gemini-2.5-flash",
@@ -17,11 +19,12 @@ if not os.path.exists("data.json"):
 
 def study():
     question = input("Please enter your question or topic you want to be explained:")
+    full_question = {"topic" : question, "date": str(date.today())}
 
     with open("data.json", "r") as f:
         data = json.load(f)
         
-    data["topics"].append(question)
+    data["topics"].append(full_question)
 
     with open("data.json", "w") as f:
         json.dump(data, f, indent=4)
@@ -54,29 +57,57 @@ def history():
 
     print("\nTopics studied:")
     for topic in data["topics"]:
+        topic = str(topic)
+        topic = topic.replace("{","")
+        topic = topic.replace("}","")
+        topic = topic.replace("'","")
         print("-", topic)
 
 def clean_up():
     with open("data.json", "r") as f:
         data = json.load(f)
-        print(data)
-    call_model("Please delete any duplicates in this data and return only in JSON nothing else: " + data )
+
+    cleaned_json = call_model( "Remove duplicate topics from this JSON and return ONLY valid JSON:\n" + json.dumps(data) )
+    cleaned_data = json.loads(cleaned_json) 
+    with open("data.json", "w") as f: json.dump(cleaned_data, f, indent=4) 
+    print("Cleanup complete!")
+
+def check_stats():
+    with open("data.json", "r") as f:
+        data = json.load(f)
+
+    if len(data["topics"]) == 0:
+        print("No topics studied yet.")
+        return
+
+    topic_names = []
+
+    for topic in data["topics"]:
+        topic_names.append(topic["topic"])
+
+    print("Last studied topic: " + data["topics"][-1]["topic"])
+    print("Last study date: " + data["topics"][-1]["date"])
+    print("Total topics studied: " + str(len(data["topics"])))
+    print("Total unique topics: " + str(len(set(topic_names))))
 
 print("AI Study Engine")
 
 print("1. Study")
 print("2. View History")
 print("3. Cleanup")
+print("4. View Stats")
 
-response = int(input("Choose an option: "))
+response = int(input("Choose an option:"))
 
-while response != 1 or 2 or 3:
-    response = int(input("Please enter 1, 2, or 3: "))
+while response not in l1:
+    response = int(input("Please enter 1, 2, 3, 4: "))
 
 if response == 1:
     study()
 elif response == 2:
     history()
 elif response == 3:
-    clean_up
+    clean_up()
+elif response == 4:
+    check_stats()
 
