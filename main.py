@@ -19,15 +19,7 @@ if not os.path.exists("data.json"):
 
 def study():
     question = input("Please enter your question or topic you want to be explained:")
-    full_question = {"topic" : question, "date": str(date.today())}
 
-    with open("data.json", "r") as f:
-        data = json.load(f)
-        
-    data["topics"].append(full_question)
-
-    with open("data.json", "w") as f:
-        json.dump(data, f, indent=4)
 
     print("Explanation:")
 
@@ -36,7 +28,7 @@ def study():
     response = input("Do you need another explanation(Y/N):")
 
     while response == "Y":
-        print(call_model("Please explain "+question+" With 2 example problems(if applicable)+" + "Keep your Explanation 8-10 Bullet Points"))
+        print(call_model("Please explain "+question+" With 2 example problems(if applicable) with answers+" + "Keep your Explanation 8-10 Bullet Points"))
         response = input("Do you need another explanation(Y/N):")
 
     print("Quiz")
@@ -49,8 +41,22 @@ def study():
 
     response = input("Please enter your answers(Ex: A,B,C,D):")
 
-    print(call_model("This is the quiz" + quiz + "Check these answers and give feedback" + response))
+    text = (call_model("This is the quiz" + quiz + "Check these answers and give feedback" + response + "At the top of the output return the score in this format: 'Score: (Correct answers)/(Total Questions)' in this exact format down to the spaces" + " Don't put any other text before or on the line of the Score"))
 
+    print(text)
+
+    l1 = text.split()
+
+    full_question = {"topic" : question, "date": str(date.today()), "score": str(l1[1])}
+
+    with open("data.json", "r") as f:
+        data = json.load(f)
+        
+    data["topics"].append(full_question)
+
+    with open("data.json", "w") as f:
+        json.dump(data, f, indent=4)
+    
 def history():
     with open("data.json", "r") as f:
         data = json.load(f)
@@ -81,14 +87,25 @@ def check_stats():
         return
 
     topic_names = []
+    average = 0
 
-    for topic in data["topics"]:
-        topic_names.append(topic["topic"])
+    for i in data["topics"]:
+        score = i["score"]
+
+        parts = score.split("/")
+
+        correct = int(parts[0])
+        total = int(parts[1])
+
+        average += (correct / total) * 100
+
+    average = average / len(data["topics"])
 
     print("Last studied topic: " + data["topics"][-1]["topic"])
     print("Last study date: " + data["topics"][-1]["date"])
     print("Total topics studied: " + str(len(data["topics"])))
     print("Total unique topics: " + str(len(set(topic_names))))
+    print("Average Accuracy: " + str(round(average, 2)) + "%")
 
 print("AI Study Engine")
 
@@ -101,13 +118,23 @@ response = int(input("Choose an option:"))
 
 while response not in l1:
     response = int(input("Please enter 1, 2, 3, 4: "))
+while response != 4:
+    if response == 1:
+        study()
+    elif response == 2:
+        history()
+    elif response == 3:
+        clean_up()
 
-if response == 1:
-    study()
-elif response == 2:
-    history()
-elif response == 3:
-    clean_up()
-elif response == 4:
-    check_stats()
+    print("1. Study")
+    print("2. View History")
+    print("3. Cleanup")
+    print("4. View Stats")
+
+    response = int(input("Choose an option:"))
+
+    while response not in l1:
+        response = int(input("Please enter 1, 2, 3, 4: "))
+if response == 4:
+        check_stats()
 
